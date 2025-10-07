@@ -1,11 +1,11 @@
-name: Android Build and Release
+name: Android Build
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
     
     steps:
@@ -21,29 +21,17 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
-    - name: Get version and timestamp
-      id: vars
-      run: |
-        echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
-        echo "run_number=$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
       
     - name: Build Release APK
       run: ./gradlew assembleRelease
       
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
+    - name: Upload APKs
+      uses: actions/upload-artifact@v4
       with:
-        tag_name: build-${{ steps.vars.outputs.run_number }}-${{ steps.vars.outputs.sha_short }}
-        name: "Build #${{ steps.vars.outputs.run_number }} (${{ steps.vars.outputs.timestamp }})"
-        body: |
-          Automated build from commit ${{ steps.vars.outputs.sha_short }}
-          
-          - Timestamp: ${{ steps.vars.outputs.timestamp }}
-          - Run Number: #${{ steps.vars.outputs.run_number }}
-        draft: false
-        prerelease: false
-        files: |
+        name: android-apks
+        path: |
+          android/build/outputs/apk/debug/*.apk
           android/build/outputs/apk/release/*.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        retention-days: 30
